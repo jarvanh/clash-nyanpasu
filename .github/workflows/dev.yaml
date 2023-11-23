@@ -14,7 +14,26 @@ jobs:
   release:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - build: linux
+            os: ubuntu-latest
+            arch: x86_64
+            target: x86_64-unknown-linux-gnu
+
+          - build: macos
+            os: macos-latest
+            arch: x86_64
+            target: x86_64-apple-darwin
+
+          - build: macos
+            os: macos-latest
+            arch: aarch64
+            target: aarch64-apple-darwin
+
+          - build: windows
+            os: windows-latest
+            arch: x86_64
+            target: x86_64-pc-windows-msvc
 
     runs-on: ${{ matrix.os }}
     if: startsWith(github.repository, 'keiko233')
@@ -29,6 +48,12 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          key: ${{ matrix.target }}
+
+      - name: install dependencies (aarch64-apple-darwin only)
+        if: startsWith(matrix.target, 'aarch64-apple-darwin')
+        run: |
+          rustup target add ${{ matrix.target }}
 
       - name: Install Node
         uses: actions/setup-node@v3
@@ -69,7 +94,10 @@ jobs:
       - name: Pnpm install and check
         run: |
           pnpm i
-          pnpm check
+          if: startsWith(matrix.target, 'aarch64-apple-darwin')
+          run: pnpm check --arch arm64
+          else
+          run: pnpm check
 
       - name: Tauri build
         uses: tauri-apps/tauri-action@v0
@@ -84,7 +112,7 @@ jobs:
           releaseDraft: false
           prerelease: true
           tauriScript: pnpm
-          args: -f default-meta
+          args: -f default-meta -t ${{ matrix.target }}
 
       - name: Portable Bundle
         if: matrix.os == 'windows-latest'

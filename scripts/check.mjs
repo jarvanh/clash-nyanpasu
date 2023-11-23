@@ -10,6 +10,10 @@ const cwd = process.cwd();
 const TEMP_DIR = path.join(cwd, "node_modules/.verge");
 const FORCE = process.argv.includes("--force");
 
+const ARCH = process.argv.includes("--arch")
+  ? process.argv[process.argv.indexOf("--arch") + 1]
+  : undefined;
+
 const SIDECAR_HOST = execSync("rustc -vV")
   .toString()
   .match(/(?<=host: ).+(?=\s*)/g)[0];
@@ -51,7 +55,11 @@ const META_MAP = {
  * check available
  */
 
-const { platform, arch } = process;
+const platform = process.platform;
+const arch = ARCH ? ARCH : process.arch;
+
+console.log("platform: " + platform, "arch: " + arch);
+
 if (!CLASH_MAP[`${platform}-${arch}`]) {
   throw new Error(`clash unsupported platform "${platform}-${arch}"`);
 }
